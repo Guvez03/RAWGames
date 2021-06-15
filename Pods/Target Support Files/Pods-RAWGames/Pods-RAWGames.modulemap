@@ -1,0 +1,6 @@
+framework module Pods_RAWGames {
+  umbrella header "Pods-RAWGames-umbrella.h"
+
+  export *
+  module * { export * }
+}
