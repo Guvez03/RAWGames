@@ -103,7 +103,8 @@ class GameListViewController: UIViewController{
         let selectedImage = pageImageArray[tag]
         let detailVC = DetailViewController()
         detailVC.id = selectedImage.id
-        navigationController?.pushViewController(detailVC, animated: true)
+        self.present(detailVC, animated: true, completion: nil)
+        //navigationController?.pushViewController(detailVC, animated: true)
     }
     
     func setUpView(){
