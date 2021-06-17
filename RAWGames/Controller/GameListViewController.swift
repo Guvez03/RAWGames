@@ -13,19 +13,9 @@ class GameListViewController: UIViewController{
     
     var vc : ViewController?
     var pages: [UIViewController] = [UIViewController]()
-    
     var pageView =  UIPageViewController(transitionStyle: .scroll, navigationOrientation: .horizontal, options: nil)
-    
-    private var resultModels: [Results] = []
-    private var pageImageArray: [Results] = []
-    private var tableViewArray: [Results] = []
-    var filteredArray: [Results] = []
-    
-    var imageCacheArray: [UIImage] = []
-    
     var count = 0
-    let coreDataManager: CoreDataManager = CoreDataManager()
-    
+
     let myContainerView: UIView = {
         let view = UIView()
         view.translatesAutoresizingMaskIntoConstraints = false
@@ -68,8 +58,7 @@ class GameListViewController: UIViewController{
         setUpView()
         fetchData()
         
-        gameListViewModel.onUpdate = { results in
-            self.resultModels = results
+        gameListViewModel.onUpdate = {  
             self.pageViewSetUp()
         }
         
@@ -77,34 +66,33 @@ class GameListViewController: UIViewController{
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(true)
         navigationController?.navigationBar.isHidden = false
+
     }
-    
+
     func fetchData(){
-        
         gameListViewModel.fetchData()
     }
     
     func pageViewSetUp(){
-        self.pageImageArray = Array(self.resultModels[0 ..< 3])
-        self.filteredArray = Array(self.resultModels[3...])
-        for i in 0 ..< 3 {
+        let array = gameListViewModel.pageImageArray
+        for i in 0 ..< array.count {
             let vc = ViewController()
-            vc.imageName = self.pageImageArray[i].background_image
+            vc.imageName = array[i].background_image
             vc.imageBtn.addTarget(self, action: #selector(self.imgBtnTouched), for: .touchUpInside)
             vc.imageBtn.tag = i
             self.pages.append(vc)
         }
+        self.gameListViewModel.filteredArray[0 ..< 3].removeAll()
         self.pageView.setViewControllers([self.pages[0]], direction: .forward, animated: false, completion: nil)
         self.tableView.reloadData()
     }
     
     @objc func imgBtnTouched(_ sender: UIButton){
         let tag = sender.tag
-        let selectedImage = pageImageArray[tag]
+        let selectedImage = self.gameListViewModel.pageImageArray[tag]
         let detailVC = DetailViewController()
         detailVC.id = selectedImage.id
         self.present(detailVC, animated: true, completion: nil)
-        //navigationController?.pushViewController(detailVC, animated: true)
     }
     
     func setUpView(){
@@ -135,14 +123,10 @@ class GameListViewController: UIViewController{
         self.tableView.scrollIndicatorInsets = adjustForTabbarInsets
         
         navigationController?.navigationBar.barTintColor = .darkGray
-        
         navigationController?.navigationBar.isTranslucent = false
-        navigationController?.navigationBar.barStyle = .black
         navigationController?.navigationBar.tintColor = .white
         navigationItem.titleView = searchBar
-        
-        navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .search, target: self, action: #selector(handleShowSearchBar))
-        
+                
         view.addSubview(myContainerView)
         NSLayoutConstraint.activate([
             myContainerView.topAnchor.constraint(equalTo: view.topAnchor,constant: 15),
@@ -183,31 +167,26 @@ class GameListViewController: UIViewController{
 
 extension GameListViewController: UITableViewDelegate,UITableViewDataSource {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        
-        return filteredArray.count
-        
+
+        return self.gameListViewModel.filteredArray.count
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         
         guard let cell = tableView.dequeueReusableCell(withIdentifier: GamesTableViewCell.cellId, for: indexPath) as? GamesTableViewCell else { return UITableViewCell() }
         
-        let indexArr = filteredArray[indexPath.row]
-        //cell.gameBackgroundImage.setImageKf(imageUrl:indexArr.background_image, imageView: cell.gameBackgroundImage)
-        cell.gameBackgroundImage.setImage(imageUrl: indexArr.background_image)
-        cell.gameName.text = indexArr.name
-        cell.gameRating.text = "\(indexArr.rating) - \(indexArr.released)"
-        
+        cell.gameListViewModel = gameListViewModel
+        cell.configureCell(indexpath: indexPath.row)
+
         return cell
     }
     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
         return tableView.estimatedRowHeight
     }
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        let selected = filteredArray[indexPath.row]
+        let selected = self.gameListViewModel.filteredArray[indexPath.row]
         let detailVC = DetailViewController()
         detailVC.id = selected.id
-        //navigationController?.pushViewController(detailVC, animated: true)
         self.present(detailVC, animated: true, completion: nil)
     }
 }
@@ -237,9 +216,9 @@ extension GameListViewController: UIPageViewControllerDelegate {
 extension GameListViewController: UISearchBarDelegate {
     func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
         
-        guard !searchText.isEmpty else{
-            
-            self.filteredArray = Array(self.resultModels[3...])
+        gameListViewModel.searchTextdidChange(searchText: searchText)
+        
+        gameListViewModel.onSearchTextIsEmpty = {
             self.pageView.view.isHidden = false
             self.vc?.view.isHidden = false
             self.noticeLabel.isHidden = true
@@ -247,27 +226,26 @@ extension GameListViewController: UISearchBarDelegate {
             self.myContainerView.isHidden = false
             self.tableView.frame = CGRect(x: 15, y: self.pageView.view.frame.height, width: self.view.frame.width - 30, height: self.view.frame.height - self.view.frame.height / 3)
             self.tableView.reloadData()
-            
-            return
         }
-        if searchText.count > 3 {
+        
+        gameListViewModel.onSearchTextControl =  { (status) in
             self.pageView.view.isHidden = true
             self.vc?.view.isHidden = true
             self.myContainerView.isHidden = true
             self.tableView.frame = CGRect.init(x: 0, y: 0, width: self.view.frame.width, height: self.view.frame.height)
-            self.filteredArray = self.resultModels.filter({ game -> Bool in
-                game.name.contains(searchText)
-            })
-            if self.filteredArray == [] {
+
+            switch status {
+            case true:
                 self.noticeLabel.isHidden = false
                 self.tableView.isHidden = true
-            }else{
+            case false:
                 self.noticeLabel.isHidden = true
                 self.tableView.isHidden = false
+            default: break
             }
             self.tableView.reloadData()
-            
         }
+
     }
 }
 

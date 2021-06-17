@@ -9,18 +9,18 @@ import UIKit
 
 
 class GameListViewModel{
-    
+
     let coreDataManager: CoreDataManager = CoreDataManager()
     var resultArray: [Results] = []
     var filteredArray: [Results] = []
-    
-    var onUpdate: ([Results]) -> Void = {_ in}
+    var pageImageArray: [Results] = []
+
+    var onUpdate = {}
     var onSearchTextIsEmpty = {}
-    var onSearchTextControl = {}
-    
+    var onSearchTextControl: (_ status:Bool?) -> Void = {_ in}
+        
     func fetchData(){
         DispatchQueue.main.async {
-            
             //self.coreDataManager.deleteGameList()
             
             if self.coreDataManager.fetchGameList() != nil && self.coreDataManager.fetchGameList() != []{
@@ -29,7 +29,9 @@ class GameListViewModel{
                     self.resultArray = gameList.compactMap{
                         Results(name: $0.name ?? "", id: Int($0.id), rating: $0.rating, slug: "", background_image: $0.background_image ?? "", released: $0.released ?? "")
                     }
-                    self.onUpdate(self.resultArray)
+                    self.pageImageArray = Array(self.resultArray[0 ..< 3])
+                    self.filteredArray = self.resultArray
+                    self.onUpdate()
                 }
             }else {
                 APIService.shared.getGameList { (result) in
@@ -39,10 +41,11 @@ class GameListViewModel{
                     case.success(let games):
                         self.resultArray = games.results
                         self.filteredArray = self.resultArray
+                        self.pageImageArray = Array(self.resultArray[0 ..< 3])
                         for filteredItem in self.filteredArray {
                             self.coreDataManager.saveGameList(name: filteredItem.name, released: filteredItem.released, rating: filteredItem.rating, background_image: filteredItem.background_image,id: filteredItem.id)
                         }
-                        self.onUpdate(self.resultArray)
+                        self.onUpdate()
                     }
                 }
                 
@@ -51,19 +54,12 @@ class GameListViewModel{
         }
     }
     
-    
     func viewControllerBefore(pages:[UIViewController],viewController: UIViewController) -> UIViewController?{
         
         guard let viewControllerIndex = pages.firstIndex(of: viewController) else {return nil}
-        
-        print("previous : \(viewControllerIndex)")
-        
         let previousIndex = viewControllerIndex - 1
-        
         guard previousIndex >= 0 else { return pages.last }
-        
         guard pages.count > previousIndex else { return nil }
-        
         return pages[previousIndex]
         
     }
@@ -71,15 +67,9 @@ class GameListViewModel{
     func viewControllerAfter(pages:[UIViewController],viewController: UIViewController) -> UIViewController?{
         
         guard let viewControllerIndex = pages.firstIndex(of: viewController) else { return nil}
-        
-        print("next : \(viewControllerIndex)")
-        
         let nextIndex = viewControllerIndex + 1
-        
         guard nextIndex < pages.count else { return pages.first }
-        
         guard pages.count > nextIndex else { return nil }
-        
         return pages[nextIndex]
         
     }
@@ -100,11 +90,19 @@ class GameListViewModel{
     func searchTextdidChange(searchText:String) {
         
         guard !searchText.isEmpty else{
+            self.filteredArray = Array(self.resultArray[3...])
             onSearchTextIsEmpty()
             return
         }
         if searchText.count > 3 {
-            onSearchTextControl()
+            self.filteredArray = self.resultArray.filter({ game -> Bool in
+                game.name.contains(searchText)
+            })
+            if self.filteredArray == [] {
+                onSearchTextControl(true)
+            }else{
+                onSearchTextControl(false)
+            }
         }
         
     }

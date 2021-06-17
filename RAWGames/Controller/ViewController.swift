@@ -28,7 +28,8 @@ class ViewController: UIViewController{
         }
     }
     
-    var imageArr: [Results]?
+    //var imageArr: [Results]?
+    var gameListModel = GameListViewModel()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -51,13 +52,10 @@ class ViewController: UIViewController{
         
         backGroundImageView.setImage(imageUrl: imageName)
         
-        if let imageArray = imageArr {
-            for index in 0 ... 3{
+            for index in 0 ..< gameListModel.pageImageArray.count{
                 //backGroundImageView.setImageKf(imageUrl:imageArray[index].background_image, imageView: backGroundImageView)
-                backGroundImageView.setImage(imageUrl: imageArray[index].background_image)
+                backGroundImageView.setImage(imageUrl: gameListModel.pageImageArray[index].background_image)
             }
-        }
-        
     }
     
 }

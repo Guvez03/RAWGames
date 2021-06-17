@@ -108,7 +108,10 @@ class DetailViewController: UIViewController {
         }
         
     }
-    
+    override func viewWillLayoutSubviews() {
+        super.viewWillLayoutSubviews()
+        navigationController?.navigationBar.isHidden = true
+    }
     @objc func touchLiked(){
         
         guard  let ID = id else{

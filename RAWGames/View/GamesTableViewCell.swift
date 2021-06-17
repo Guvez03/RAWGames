@@ -31,6 +31,8 @@ class GamesTableViewCell: UITableViewCell {
         return label
     }()
     
+    var gameListViewModel : GameListViewModel?
+    
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         
@@ -68,6 +70,16 @@ class GamesTableViewCell: UITableViewCell {
             gameRating.heightAnchor.constraint(equalToConstant: (contentView.frame.height) / 2)
         ])
         
+    }
+    
+    func configureCell(indexpath:Int){
+        if let gamelistVM = gameListViewModel {
+            let item = gamelistVM.filteredArray[indexpath]
+            gameName.text = item.name
+            gameBackgroundImage.setImage(imageUrl: item.background_image)
+            gameRating.text = "\(item.rating) - \(item.released)"
+            
+        }
     }
     
 }

@@ -9,7 +9,6 @@ import Foundation
 
 struct GameModels:Decodable{
     let results: [Results]
-    
 }
 
 struct Results:Decodable,Equatable{

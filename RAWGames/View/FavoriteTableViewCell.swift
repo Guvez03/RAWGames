@@ -39,6 +39,8 @@ class FavoriteTableViewCell: UITableViewCell {
     
     var onUpdate = {}
     
+    var favoriteGameViewModel = FavoriteGameViewModel()
+    
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         
@@ -93,5 +95,14 @@ class FavoriteTableViewCell: UITableViewCell {
     @objc func likeBtnTourched(){
         onUpdate()
     }
-    
+    func configure(index:Int){
+        
+        let favoriteGame = favoriteGameViewModel.games[index]
+        gameBackgroundImage.setImage(imageUrl:favoriteGame.background_image ?? "")
+        gameName.text = favoriteGame.name
+        gameRating.text = "\(favoriteGame.rating) - \(favoriteGame.released ?? "")"
+        likeButton.setBackgroundImage(UIImage(systemName:"hand.thumbsup"), for: .normal)
+        favoriteGame.isSelected ? likeButton.setBackgroundImage(UIImage(systemName:"hand.thumbsup.fill"), for: .normal) :                 likeButton.setBackgroundImage(UIImage(systemName:"hand.thumbsup"), for: .normal)
+   
+    }
 }
